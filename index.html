@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Strong Password Generator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+   <h1>🔐 <span class="gradient-text typing">Strong Password Generator</span></h1>
+
+
+
+    <div class="options">
+      <label>Password Length: <input type="number" id="length" value="12" min="6" max="32" /></label>
+      <label><input type="checkbox" id="upper" checked> Uppercase</label>
+      <label><input type="checkbox" id="digits" checked> Digits</label>
+      <label><input type="checkbox" id="symbols" checked> Symbols</label>
+    </div>
+
+    <button onclick="generate()">⚡ Generate Password</button>
+  
+    <input type="text" id="password" placeholder="Your password will appear here" oninput="checkStrength()" />
+    <div id="strength">Strength: -</div>
+
+    <button onclick="getSuggestions()">💡 Suggest Strong Variations</button>
+    <div id="suggestions"></div>
+  </div>
+
+  <script>
+    async function generate() {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          length: document.getElementById('length').value,
+          upper: document.getElementById('upper').checked,
+          digits: document.getElementById('digits').checked,
+          symbols: document.getElementById('symbols').checked,
+        })
+      });
+      const data = await res.json();
+      document.getElementById('password').value = data.password;
+      document.getElementById('strength').innerText = "Strength: " + data.strength;
+    }
+
+    async function checkStrength() {
+      const pw = document.getElementById('password').value;
+      if (!pw) return;
+      const res = await fetch('/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      });
+      const data = await res.json();
+      document.getElementById('strength').innerText = "Strength: " + data.strength;
+    }
+
+    async function getSuggestions() {
+      const base_pw = document.getElementById('password').value;
+      const res = await fetch('/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_pw })
+      });
+      const data = await res.json();
+      const box = document.getElementById('suggestions');
+      box.innerHTML = "<h3>🔁 Suggestions:</h3>" + data.suggestions.map(pw => `
+        <div class="suggestion">
+          <input value="${pw}" readonly />
+          <button onclick="navigator.clipboard.writeText('${pw}')">📋</button>
+        </div>
+      `).join("");
+    }
+  </script>
+  <canvas id="bg"></canvas>
+
+<script>
+const c = document.getElementById("bg");
+const ctx = c.getContext("2d");
+c.width = window.innerWidth;
+c.height = window.innerHeight;
+
+let particles = [];
+for (let i = 0; i < 100; i++) {
+  particles.push({
+    x: Math.random() * c.width,
+    y: Math.random() * c.height,
+    radius: Math.random() * 1.5 + 0.5,
+    dx: Math.random() - 0.5,
+    dy: Math.random() - 0.5
+  });
+}
+
+function draw() {
+  ctx.fillStyle = "rgba(17, 17, 17, 0.3)";
+  ctx.fillRect(0, 0, c.width, c.height);
+  for (let p of particles) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#9f00ff";
+    ctx.fill();
+    p.x += p.dx;
+    p.y += p.dy;
+    if (p.x < 0 || p.x > c.width) p.dx *= -1;
+    if (p.y < 0 || p.y > c.height) p.dy *= -1;
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+
+</body>
+</html>
